@@ -21,5 +21,5 @@ Use these components for your SPA when the following applies:
 
 `npm install --save react-cognito-identity`
 
-[Examples](https://github.com/awill1988/react-cognito-identity/examples)
-- `CUSTOM_AUTH` flow
+#### Examples
+- [`CUSTOM_AUTH` flow](https://github.com/awill1988/react-cognito-identity/tree/master/examples/custom-auth)
