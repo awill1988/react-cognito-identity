@@ -3,29 +3,26 @@ import * as PropTypes from 'prop-types';
 import {Consumer} from './IdentityProvider';
 import {ReactNode, Component} from "react";
 
-const AuthenticationContext = React.createContext({});
-const {Provider: AuthenticationProvider, Consumer: AuthenticationConsumer} = AuthenticationContext;
+const AuthenticationContext = React.createContext<IAuthenticationState|{}>({state: {}});
+const {Provider: AuthenticationProvider} = AuthenticationContext;
+const AuthenticationConsumer = AuthenticationContext.Consumer as any;
 
-export interface IAuthenticationProps {
-    children: ReactNode
-}
-
-class Authentication extends Component<IAuthenticationProps> {
+class Authentication extends Component<{children: ReactNode}> {
     static propTypes = {
         children: PropTypes.any
     };
 
     render() {
+        const {children} = this.props;
         return (
             <Consumer>
                 {
                     ({state}: any) => {
                         const {login, logout, challengeParameters, answerAuthChallenge, authenticated} = state;
+                        const newState = {login, logout, challengeParameters, answerAuthChallenge, authenticated};
                         return (
-                            <AuthenticationProvider value={{login, logout, challengeParameters, answerAuthChallenge, authenticated}}>
-                                <AuthenticationConsumer>
-                                    {() => this.props.children}
-                                </AuthenticationConsumer>
+                            <AuthenticationProvider value={newState}>
+                                <AuthenticationConsumer children={children}/>
                             </AuthenticationProvider>
                         );
                     }

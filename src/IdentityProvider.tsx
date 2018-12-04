@@ -5,8 +5,23 @@ import * as AWSCognito from 'amazon-cognito-identity-js';
 import {withRouter} from 'react-router';
 import {setDebugging, CognitoAuthHandlers, DEFAULT_PROPS} from './Helpers';
 
-const Context = createContext({});
-const {Consumer} = Context;
+const Context = createContext<{state:ICognitoIdentityState}>({
+    state: {
+        cognitoUser: null,
+        session: null,
+        lastError: null,
+        userPool: null,
+        challengeParameters: null,
+        answerAuthChallenge: () => {},
+        logout: () => {},
+        login: () => {},
+        accessToken: null,
+        authenticated: null,
+        lastPage: null
+    }
+});
+
+const {Provider, Consumer} = Context;
 
 class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdentityState> {
     static intervalCheck?: number|null = undefined;
@@ -97,14 +112,16 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
             return;
         }
         const lastPage = location.pathname;
+        console.log(lastPage, path);
         eventCallback.call(this, null, {lastPage, path});
         if (path === lastPage) {
             return;
         }
         this.setState({
             lastPage
+        }, () => {
+            history.push(path);
         });
-        history.push(path);
     }
 
     goBack() {
@@ -137,7 +154,12 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
                 (cognitoUser as AWSCognito.CognitoUser).signOut();
             }
         }
-        this.redirectTo(logoutRedirect!);
+        this.setState({
+            authenticated: false,
+            session: null,
+        }, () => {
+            this.redirectTo(logoutRedirect!);
+        });
     }
 
     shouldEnforceRoute(location: string) {
@@ -257,7 +279,12 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
     }
 
     render() {
-        return this.props.children;
+        const {state, props} = this;
+        return (
+            <Provider value={{state}}>
+                {props.children}
+            </Provider>
+        );
     }
 }
 

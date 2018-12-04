@@ -3,19 +3,18 @@ import {Context, Component, ReactNode} from 'react';
 import PropTypes from 'prop-types';
 import {Consumer} from './IdentityProvider';
 
-export interface ISessionProps {
-    children: ReactNode
-}
-
 const SessionContext: Context<any> = React.createContext<any>({});
-const {Provider: SessionProvider, Consumer: SessionConsumer} = SessionContext;
+const {Provider: SessionProvider} = SessionContext;
 
-class Session extends Component<ISessionProps, any> {
+const SessionConsumer = SessionContext.Consumer as any;
+
+class Session extends Component<{children: ReactNode}> {
     static propTypes = {
-        children: PropTypes.node
+        children: PropTypes.any
     };
 
     render() {
+        const {children} = this.props;
         return (
             <Consumer>
                 {
@@ -23,9 +22,7 @@ class Session extends Component<ISessionProps, any> {
                         const {session, authenticated} = state;
                         return (
                             <SessionProvider value={{session, authenticated}}>
-                                <SessionConsumer>
-                                    {() => this.props.children}
-                                </SessionConsumer>
+                                <SessionConsumer children={children}/>
                             </SessionProvider>
                         );
                     }

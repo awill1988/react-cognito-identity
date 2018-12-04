@@ -5,7 +5,6 @@ export const setDebugging = (setting: boolean) => AUTH_PROVIDER_DEBUG = setting;
 
 export function DEBUG(...args: any) {
     if (AUTH_PROVIDER_DEBUG) {
-        // eslint-disable-next-line
         console.log('CognitoIdentity', ...args);
     }
 }
@@ -25,7 +24,7 @@ export const CognitoAuthHandlers = (instance: any): IAuthenticationCallback => (
     },
     onFailure(error) {
         instance.setState({
-            error,
+            lastError: error,
             challengeParameters: null,
             authenticated: false,
         }, () => {

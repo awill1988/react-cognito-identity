@@ -1,15 +1,12 @@
 import React from 'react';
 import { render } from 'react-dom';
-import { IdentityProvider } from 'react-cognito-identity';
-
 import { App } from './App';
+import {BrowserRouter as Router} from "react-router-dom";
 
 const WrappedApp = (
-  <IdentityProvider
-    DEBUG={true}
-  >
-    <App />
-  </IdentityProvider>
+  <Router>
+    <App/>
+  </Router>
 );
 
 render(WrappedApp, document.getElementById('root'));

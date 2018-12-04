@@ -29,3 +29,11 @@ interface ICognitoIdentityState {
     authenticated: null|boolean,
     lastPage: null,
 }
+
+interface IAuthenticationState {
+    login: any,
+    logout: any,
+    challengeParameters: any,
+    answerAuthChallenge: any,
+    authenticated: any
+}
