@@ -50,7 +50,7 @@ export default [
         ignore: [
           'react',
           'react-dom/server',
-          'amazon-cognito-identity-js'
+          'aws-amplify'
         ],
       }),
       replace({

@@ -4,14 +4,26 @@ import {IdentityProvider, Session} from 'react-cognito-identity';
 import Home from './Home';
 import Login from './Login';
 
+const oauth = {
+  domain: 'http://localhost:3000',
+  scope: [
+    'profile',
+    'openid'
+  ],
+  redirectSignIn: 'http://localhost:3000/login',
+  redirectSignOut: 'http://localhost:3000',
+  responseType: 'token',
+};
+
 export const App = () => {
   return (
     <IdentityProvider
       DEBUG={true}
-      ClientId="<AWS_USER_POOL_CLIENT_ID>"
-      UserPoolId="<AWS_USER_POOL_ID>"
+      ClientId=""
+      UserPoolId=""
       FlowType="CUSTOM_AUTH"
       loginRedirect="/login"
+      OAuthConfig={oauth}
     >
       <Session>
         {(context) => {
