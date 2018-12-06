@@ -14,6 +14,7 @@ interface ICognitoIdentityProvider {
     checkInterval: number;
     unprotectedRoutes: string|null;
     children: React.ReactNode;
+    Username?: string;
 }
 
 interface ICognitoIdentityState {
