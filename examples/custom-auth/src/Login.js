@@ -50,7 +50,7 @@ export default class Login extends Component {
         return (
           <form id="login" onSubmit={(e) => this.handleSubmit(e, answerAuthChallenge, ['answer'])}>
             <label htmlFor="answer">{challengeParameters.question}</label>
-            <input name="answer" type="text" minLength="4" value="" placeholder="Enter Correct Answer"/>
+            <input name="answer" type="text" minLength="4" placeholder="Enter Correct Answer"/>
             <button type="submit">Submit</button>
           </form>
         );

@@ -12,11 +12,12 @@ interface ICognitoIdentityProvider {
   history: any|null;
   loginRedirect?: string;
   logoutRedirect?: string;
-  eventCallback: (error?: Error|null, data?: any)=>void;
+  eventCallback: (error: Error|null, ...args: any)=>void;
   checkInterval: number;
   OAuthConfig?: any;
   unprotectedRoutes: string|null;
   children: React.ReactNode;
+  Username?: string;
 }
 
 interface ICognitoIdentityState {

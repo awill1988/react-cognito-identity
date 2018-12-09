@@ -60,11 +60,11 @@ export const DEFAULT_PROPS: ICognitoIdentityProvider = {
   logoutRedirect: '/',
   checkInterval: 60,
   unprotectedRoutes: null,
-  eventCallback: (error?: null|Error, data?: any) => {
+  eventCallback: (error: null|Error, ...args) => {
     if (error) {
       console.error('Error', error);
     }
-    DEBUG(data);
+    DEBUG(...args);
   },
   children: null,
   OAuthConfig: null
