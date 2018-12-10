@@ -18,10 +18,10 @@ class Session extends Component<{children: ReactNode}> {
         return (
             <Consumer>
                 {
-                    ({state}: any) => {
-                        const {session, authenticated} = state;
+                    ({state}: {state: ICognitoIdentityState}) => {
+                        const {awsCredentials, session, authenticated} = state;
                         return (
-                            <SessionProvider value={{session, authenticated}}>
+                            <SessionProvider value={{awsCredentials, session, authenticated}}>
                                 <SessionConsumer children={children}/>
                             </SessionProvider>
                         );
