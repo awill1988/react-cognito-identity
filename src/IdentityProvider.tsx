@@ -216,10 +216,10 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
       .then((user: CognitoUser) => {
         this.getCredentials(user, (error: Error|null|undefined, data: any) => {
           eventCallback(error, data);
-          const {session, awsCredentials} = data;
+          const {session, credentials} = data;
           this.setState({
             session,
-            awsCredentials,
+            awsCredentials: credentials,
             authenticated: (session && session.isValid()) as boolean
           }, success.bind(this, session));
         });
