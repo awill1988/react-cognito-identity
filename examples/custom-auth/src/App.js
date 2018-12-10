@@ -4,26 +4,40 @@ import {IdentityProvider, Session} from 'react-cognito-identity';
 import Home from './Home';
 import Login from './Login';
 
-const oauth = {
-  domain: 'http://localhost:3000',
-  scope: [
-    'profile',
-    'openid'
-  ],
-  redirectSignIn: 'http://localhost:3000/login',
-  redirectSignOut: 'http://localhost:3000',
-  responseType: 'token',
+const awsAuthConfig  = {
+  username: null,
+  identityPoolId: null,
+  region: null,
+  clientId: null,
+  userPoolId: null,
+  flowType: 'CUSTOM_AUTH',
+  storage: undefined,
+  cookieStorage: {
+    // REQUIRED - Cookie domain (only required if cookieStorage is provided)
+    domain: '.localhost:3000',
+    // OPTIONAL - Cookie path
+    path: '/',
+    // OPTIONAL - Cookie expiration in days
+    expires: 1,
+    // OPTIONAL - Cookie secure flag
+    secure: false
+  },
+  oauth: null
+};
+
+const routingConfig = {
+  shouldRedirect: true,
+  login: '/login',
+  loginSuccess: '/',
+  logout: '/'
 };
 
 export const App = () => {
   return (
     <IdentityProvider
       DEBUG={true}
-      ClientId=""
-      UserPoolId=""
-      FlowType="CUSTOM_AUTH"
-      loginRedirect="/login"
-      OAuthConfig={oauth}
+      awsAuthConfig={awsAuthConfig}
+      routingConfig={routingConfig}
     >
       <Session>
         {(context) => {
@@ -38,4 +52,4 @@ export const App = () => {
       </Session>
     </IdentityProvider>
   );
-}
+};

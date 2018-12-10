@@ -1,78 +1,21 @@
 import * as React from 'react';
-import { Component, ClassAttributes, createContext, ReactNode } from 'react';
+import {Component, createContext} from 'react';
 import * as PropTypes from 'prop-types';
-import {CognitoUser, CognitoUserPool} from 'amazon-cognito-identity-js';
+import {CognitoUser, CognitoUserSession} from 'amazon-cognito-identity-js';
 import {AuthClass} from 'aws-amplify';
-import {AuthOptions} from '@aws-amplify/auth/lib/types';
 import {withRouter} from 'react-router';
-import {setDebugging, CognitoAuthHandlers, DEFAULT_PROPS} from './Helpers';
+import {
+  setDebugging,
+  DEFAULT_PROPS,
+  eventCallback,
+  Configure,
+  initialState,
+  clearSession,
+} from './Helpers';
 
 let AmplifyInstance: AuthClass;
 
-let amplifyConfig: AuthOptions = {
-
-  // REQUIRED only for Federated Authentication - Amazon Cognito Identity Pool ID
-  identityPoolId: '',
-
-  // REQUIRED - Amazon Cognito Region
-  region: '',
-
-  mandatorySignIn: false,
-
-  // OPTIONAL - Amazon Cognito Federated Identity Pool Region
-  // Required only if it's different from Amazon Cognito Region
-  identityPoolRegion: '',
-
-  // OPTIONAL - Amazon Cognito User Pool ID
-  userPoolId: '',
-
-  // OPTIONAL - Amazon Cognito Web Client ID (26-char alphanumeric string)
-  userPoolWebClientId: '',
-
-  // OPTIONAL - Configuration for cookie storage
-  cookieStorage: {
-    // REQUIRED - Cookie domain (only required if cookieStorage is provided)
-    domain: '.yourdomain.com',
-    // OPTIONAL - Cookie path
-    path: '/',
-    // OPTIONAL - Cookie expiration in days
-    expires: 365,
-    // OPTIONAL - Cookie secure flag
-    secure: true
-  },
-
-  // OPTIONAL - Manually set the authentication flow type. Default is 'USER_SRP_AUTH'
-  authenticationFlowType: 'USER_PASSWORD_AUTH',
-
-  oauth: {
-    awsCognito: {
-      domain: '',
-      redirectSignIn: '',
-      redirectSignOut: '',
-      responseType: '',
-      scope: [],
-    }
-  }
-};
-
-const Context = createContext<{state:ICognitoIdentityState}>({
-  state: {
-    cognitoUser: null,
-    session: null,
-    lastError: null,
-    userPool: null,
-    challengeParameters: null,
-    // tslint:disable-next-line
-    answerAuthChallenge: () => {},
-    // tslint:disable-next-line
-    logout: () => {},
-    // tslint:disable-next-line
-    login: () => {},
-    accessToken: null,
-    authenticated: null,
-    lastPage: null
-  }
-});
+const Context = createContext<{state:ICognitoIdentityState}>({state: initialState()});
 
 const {Provider, Consumer} = Context;
 
@@ -81,40 +24,17 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
 
   static propTypes = {
     DEBUG: PropTypes.bool,
-    ClientId: PropTypes.string,
-    UserPoolId: PropTypes.string,
-    FlowType: PropTypes.string,
+    awsAuthConfig: PropTypes.any,
+    routingConfig: PropTypes.any,
     location: PropTypes.object.isRequired,
     history: PropTypes.object.isRequired,
-    loginRedirect: PropTypes.string,
-    logoutRedirect: PropTypes.string,
     eventCallback: PropTypes.func,
     checkInterval: PropTypes.number,
-    unprotectedRoutes: PropTypes.string,
-    cookieDomain: PropTypes.string,
-    UserPoolRegion: PropTypes.string,
-    OAuthConfig: PropTypes.object,
-    Username: PropTypes.string
   };
 
   static defaultProps = DEFAULT_PROPS;
 
-  state = {
-    cognitoUser: null,
-    session: null,
-    lastError: null,
-    userPool: null,
-    challengeParameters: null,
-    // tslint:disable-next-line
-    answerAuthChallenge: () => {},
-    // tslint:disable-next-line
-    logout: () => {},
-    // tslint:disable-next-line
-    login: () => {},
-    accessToken: null,
-    authenticated: null,
-    lastPage: null
-  };
+  state = initialState();
 
   constructor(props: ICognitoIdentityProvider) {
     super(props);
@@ -125,45 +45,15 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
 
   componentDidMount() {
     const {
-      UserPoolId,
-      ClientId,
+      awsAuthConfig,
+      routingConfig,
       location,
-      OAuthConfig,
-      UserPoolRegion,
-      cookieDomain,
-      eventCallback,
-      FlowType
     } = this.props;
-
-    const userPool = new CognitoUserPool({
-      ClientId: ClientId || '',
-      UserPoolId: UserPoolId || '',
-    });
-
-    amplifyConfig.authenticationFlowType = FlowType;
-    amplifyConfig.userPoolId = UserPoolId;
-    amplifyConfig.userPoolWebClientId = ClientId;
-    amplifyConfig.region = UserPoolRegion;
-
-    if (!cookieDomain) {
-      delete amplifyConfig.cookieStorage;
-    } else {
-      amplifyConfig.cookieStorage!.domain = cookieDomain;
-    }
-    if (!OAuthConfig) {
-      delete amplifyConfig.oauth;
-    } else {
-      amplifyConfig.oauth!.awsCognito = OAuthConfig;
-    }
-
-    this.setState({
-      // eslint-disable-next-line
-      login: (params: any) => this.signIn(params),
-      // eslint-disable-next-line
-      logout: (invalidateAllSessions = false) => this.signOut(invalidateAllSessions),
-    }, () => {
-      AmplifyInstance = new AuthClass(amplifyConfig);
-
+    const {username, config} = Configure(awsAuthConfig);
+    eventCallback(null, 'Provided default username', username);
+    eventCallback(null, `${routingConfig ? 'has' : 'does not have'} routing configuration`);
+    clearSession.bind(this)(() => {
+      AmplifyInstance = new AuthClass(config);
       AmplifyInstance.currentUserPoolUser()
         .then(user => {
           eventCallback(null, user);
@@ -177,7 +67,6 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
   }
 
   onRouteUpdate(ev: {pathname: string}) {
-    const {eventCallback} = this.props;
     eventCallback.call(this, null, {message: 'Navigation occured'});
     if (this.shouldEnforceRoute(ev.pathname)) {
       eventCallback.call(this, null, {message: 'Should check session'});
@@ -186,7 +75,7 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
   }
 
   redirectTo(path: string, callback?: (error: null|Error, data: any) => void) {
-    const {history, location, eventCallback} = this.props;
+    const {history, location} = this.props;
     if (!history) {
       eventCallback.call(this, new Error('Router not instantiated!'), null);
       if (callback) {
@@ -213,56 +102,55 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
   }
 
   goBack() {
-    const {history, eventCallback} = this.props;
+    const {history} = this.props;
     const {lastPage} = this.state;
     if (!lastPage) {
       return;
     }
     if (!history) {
-      eventCallback.call(this, new Error('Router not instantiated!'));
+      eventCallback(new Error('Router not instantiated!'));
       return;
     }
     history.goBack();
   }
 
   signOut(invalidateAllSessions = false) {
-    const {cognitoUser} = this.state;
-    const {logoutRedirect, eventCallback} = this.props;
-    if (cognitoUser) {
-      AmplifyInstance.signOut({global: invalidateAllSessions})
-        .then(session => {
-          eventCallback.call(this, null, session);
-          this.setState({
-            authenticated: false,
-            session: null,
-            cognitoUser: null,
-          }, () => {
-            this.redirectTo(logoutRedirect!);
-          });
-        })
-        .catch(error => {
-          eventCallback.call(this, error);
-          this.setState({
-            authenticated: false,
-            session: null,
-            cognitoUser: null,
-          }, () => {
-            this.redirectTo(logoutRedirect!);
-          });
-        });
-    }
-
+    const {routingConfig, awsAuthConfig} = this.props;
+    AmplifyInstance.currentUserPoolUser()
+      .then(() => {
+        AmplifyInstance.signOut({global: invalidateAllSessions})
+          .then(() => clearSession.apply(this, [() => {
+              const {logout, login} = routingConfig || {login: null, logout: null};
+              if ((login || logout) && !awsAuthConfig.oauth) {
+                this.redirectTo(logout || login || '');
+              }
+            }])
+          )
+          .catch(error => clearSession.apply(this, [
+            () => {
+              eventCallback(error);
+              const {logout, login} = routingConfig || {login: null, logout: null};
+              if ((login || logout) && !awsAuthConfig.oauth) {
+                this.redirectTo(logout || login || '');
+              }
+            }
+          ]));
+      })
+      .catch(e => eventCallback(e));
   }
 
   shouldEnforceRoute(location: string) {
-    const {eventCallback, unprotectedRoutes, loginRedirect, logoutRedirect} = this.props;
+    const {routingConfig} = this.props;
+    if (!routingConfig) {
+      return false;
+    }
     eventCallback.call(this, null, {message: 'Navigation occured'});
     let shouldEnforceRoute = false;
-    if (unprotectedRoutes) {
-      const regexp = new RegExp(unprotectedRoutes);
+    if (routingConfig.ignorePathRegex) {
+      const regexp = new RegExp(routingConfig.ignorePathRegex);
       shouldEnforceRoute = !regexp.test(location)
-        && location !== loginRedirect
-        && location !== logoutRedirect;
+        && location !== routingConfig.login
+        && location !== routingConfig.logout;
       eventCallback.call(this, null, {
         event: {regexp, path: location, shouldEnforceRoute},
         message: `${location} is ${!shouldEnforceRoute ? 'un' : ''}protected`
@@ -272,79 +160,102 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
     return true;
   }
 
-  checkAuth({redirect}: {redirect: boolean} = {redirect: false}) {
-    const {cognitoUser} = this.state;
-    const {eventCallback, loginRedirect} = this.props;
-    if (!cognitoUser) {
-      eventCallback.call(this, null, 'Unable to obtain an active session.');
-      this.setState({
-        authenticated: false
-      });
-      if (redirect) {
-        this.redirectTo(loginRedirect!, () => {
-          const {Username} = this.props;
-          eventCallback(null, 'Redirection completed');
-          if (Username) {
-            eventCallback(null, 'Attempting to auto-login with username', Username);
-            this.signIn({username: Username});
+  successHandler(cognitoUser: CognitoUser) {
+    this.getCredentials(cognitoUser, (error: Error|null|undefined, data: any) => {
+      eventCallback(error, data);
+      if (!error) {
+        this.setState({
+          authenticated: true,
+          session: data.session,
+          awsCredentials: data.credentials,
+        }, () => {
+          const {routingConfig} = this.props;
+          if (routingConfig && routingConfig.loginSuccess) {
+            this.redirectTo(routingConfig.loginSuccess);
+          } else {
+            this.goBack();
           }
         });
       }
-      return;
+    });
+  }
+
+  getCredentials(user: CognitoUser, callback: any = () => {}) {
+    const session = user.getSignInUserSession();
+    if (!session) {
+      return callback(new Error('No user'));
     }
-    AmplifyInstance.currentSession()
-      .then(session => {
-        eventCallback.call(
-          this,
-          null,
-          `Current session is ${!session || !session.isValid() ? 'in' : ''}valid.`
-        );
-        this.setState({
-          session,
-          authenticated: (session && session.isValid()) as boolean
-        }, () => {
-          if ((!session || !session.isValid()) && redirect) {
-            this.redirectTo(loginRedirect!);
-          }
-          // Start timer to refresh
-          if (!IdentityProvider.intervalCheck && session!.isValid()) {
-            const {checkInterval} = this.props;
-            const timer = setInterval(
-              this.checkAuth.bind(this, {redirect}),
-              checkInterval * 1000
-            );
-            IdentityProvider.intervalCheck = (timer as unknown) as number;
-          }
-        });
+    AmplifyInstance.currentUserCredentials()
+      .then((credentials) => {
+        callback(undefined, {credentials, session});
       })
-      .catch(error => {
-        eventCallback.call(this, error);
+      .catch((e) => {
+        callback(e);
+      });
+  }
+
+  checkAuth({redirect}: {redirect: boolean} = {redirect: false}) {
+    const {routingConfig, awsAuthConfig} = this.props;
+    AmplifyInstance.currentUserPoolUser()
+      .then(() => {
+        AmplifyInstance.currentSession()
+          .then(session => {
+            eventCallback.call(
+              this,
+              null,
+              `Current session is ${!session || !session.isValid() ? 'in' : ''}valid.`
+            );
+
+            this.setState({
+              session,
+              authenticated: (session && session.isValid()) as boolean
+            }, () => {
+              if ((!session || !session.isValid()) && redirect && routingConfig) {
+                this.redirectTo(routingConfig.login);
+              }
+              // Start timer to refresh
+              if (!IdentityProvider.intervalCheck && session!.isValid()) {
+                const {checkInterval} = this.props;
+                const timer = setInterval(
+                  this.checkAuth.bind(this, {redirect}),
+                  checkInterval * 1000
+                );
+                IdentityProvider.intervalCheck = (timer as unknown) as number;
+              }
+            });
+          });
+      })
+      .catch(() => {
+        eventCallback( null, 'Unable to obtain an active session.');
+        this.setState({
+          authenticated: false
+        });
+        if (routingConfig && redirect) {
+          this.redirectTo(routingConfig.login, () => {
+            eventCallback(null, 'Redirection completed');
+            if (awsAuthConfig.username) {
+              eventCallback(null, 'Attempting to auto-login with username', awsAuthConfig.username);
+              this.signIn({username: awsAuthConfig.username});
+            }
+          });
+        }
+        return;
       });
   }
 
   signIn({username, password}: {username: string, password?: string}) {
-    const {eventCallback, FlowType} = this.props;
+    const {awsAuthConfig} = this.props;
     AmplifyInstance.signIn(username, password)
       .then(value => {
-        if (FlowType === 'CUSTOM_AUTH') {
+        if (awsAuthConfig.flowType === 'CUSTOM_AUTH') {
           const {challengeParam: challengeParameters} = value;
           this.setState({
-            cognitoUser: value,
             challengeParameters,
             answerAuthChallenge: ({answer} = {answer: ''}) => {
-              const {cognitoUser: user} = this.state;
-              if (FlowType === 'CUSTOM_AUTH') {
+              if (awsAuthConfig.flowType === 'CUSTOM_AUTH') {
                 AmplifyInstance.sendCustomChallengeAnswer(value, answer)
-                  .then((cognitoUser: CognitoUser)  => {
-                    eventCallback(null, cognitoUser);
-                    this.setState({
-                      authenticated: true,
-                      session: cognitoUser.getSignInUserSession()
-                    })
-                  })
-                  .catch(error => {
-                    eventCallback(error);
-                  });
+                  .then(this.successHandler.bind(this))
+                  .catch(error => eventCallback(error));
               }
             }
           }, () => {

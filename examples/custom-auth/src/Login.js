@@ -91,29 +91,22 @@ export default class Login extends Component {
     return (
       <Authentication>
         {
-          ({login, logout, answerAuthChallenge, challengeParameters, authenticated}) => {
-            console.log(logout);
-            return authenticated
-              ? (
+          ({logout, answerAuthChallenge, challengeParameters, authenticated}) => {
+            if (authenticated) {
+              return (
                 <SignOutComponent
                   logout={logout}
-                />)
-              : (
-                !challengeParameters
-                  ? (
-                    <form className="login" onSubmit={(e) => this.handleSubmit(e, login, ['username'])}>
-                      <label htmlFor="username">Username</label>
-                      <input name="username" type="text" minLength="4" placeholder="Enter 'guest'"/>
-                      <button type="submit">Login</button>
-                    </form>
-                  )
-                  : (
-                    <ChallengeComponent
-                      answerAuthChallenge={answerAuthChallenge}
-                      challengeParameters={challengeParameters}
-                    />
-                  )
-              );
+                />
+              )
+            }
+            return challengeParameters
+              ? (
+                <ChallengeComponent
+                  answerAuthChallenge={answerAuthChallenge}
+                  challengeParameters={challengeParameters}
+                />
+              )
+              : []
           }
         }
       </Authentication>
