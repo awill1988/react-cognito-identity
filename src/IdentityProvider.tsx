@@ -196,50 +196,49 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
 
   checkAuth({redirect}: {redirect: boolean} = {redirect: false}) {
     const {routingConfig, awsAuthConfig} = this.props;
-    AmplifyInstance.currentUserPoolUser()
-      .then(() => {
-        AmplifyInstance.currentSession()
-          .then(session => {
-            eventCallback.call(
-              this,
-              null,
-              `Current session is ${!session || !session.isValid() ? 'in' : ''}valid.`
-            );
 
-            this.setState({
-              session,
-              authenticated: (session && session.isValid()) as boolean
-            }, () => {
-              if ((!session || !session.isValid()) && redirect && routingConfig) {
-                this.redirectTo(routingConfig.login);
-              }
-              // Start timer to refresh
-              if (!IdentityProvider.intervalCheck && session!.isValid()) {
-                const {checkInterval} = this.props;
-                const timer = setInterval(
-                  this.checkAuth.bind(this, {redirect}),
-                  checkInterval * 1000
-                );
-                IdentityProvider.intervalCheck = (timer as unknown) as number;
-              }
-            });
-          });
+    const success = (session: CognitoUserSession) => {
+      if ((!session || !session.isValid()) && redirect && routingConfig) {
+        this.redirectTo(routingConfig.login);
+      }
+      // Start timer to refresh
+      if (!IdentityProvider.intervalCheck && session!.isValid()) {
+        const {checkInterval} = this.props;
+        const timer = setInterval(
+          this.checkAuth.bind(this, {redirect}),
+          checkInterval * 1000
+        );
+        IdentityProvider.intervalCheck = (timer as unknown) as number;
+      }
+    };
+
+    AmplifyInstance.currentUserPoolUser()
+      .then((user: CognitoUser) => {
+        this.getCredentials(user, (error: Error|null|undefined, data: any) => {
+          eventCallback(error, data);
+          const {session, awsCredentials} = data;
+          this.setState({
+            session,
+            awsCredentials,
+            authenticated: (session && session.isValid()) as boolean
+          }, success.bind(this, session));
+        });
       })
-      .catch(() => {
-        eventCallback( null, 'Unable to obtain an active session.');
+      .catch((error) => {
+        eventCallback( error, 'Unable to obtain an active session.');
         this.setState({
           authenticated: false
+        }, () => {
+          if (routingConfig && redirect) {
+            this.redirectTo(routingConfig.login, () => {
+              eventCallback(null, 'Redirection completed');
+              if (awsAuthConfig.username) {
+                eventCallback(null, 'Attempting to auto-login with username', awsAuthConfig.username);
+                this.signIn({username: awsAuthConfig.username});
+              }
+            });
+          }
         });
-        if (routingConfig && redirect) {
-          this.redirectTo(routingConfig.login, () => {
-            eventCallback(null, 'Redirection completed');
-            if (awsAuthConfig.username) {
-              eventCallback(null, 'Attempting to auto-login with username', awsAuthConfig.username);
-              this.signIn({username: awsAuthConfig.username});
-            }
-          });
-        }
-        return;
       });
   }
 
@@ -257,6 +256,7 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
                   .then(this.successHandler.bind(this))
                   .catch(error => eventCallback(error));
               }
+
             }
           }, () => {
             this.clearWatch();
