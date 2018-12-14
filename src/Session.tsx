@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {Context, Component, ReactNode} from 'react';
+import React, {Context, Component, ReactNode} from 'react';
 import PropTypes from 'prop-types';
 import {Consumer} from './IdentityProvider';
 

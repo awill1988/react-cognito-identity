@@ -2,7 +2,7 @@ import commonjs from 'rollup-plugin-commonjs';
 import node from 'rollup-plugin-node-resolve';
 import { uglify } from 'rollup-plugin-uglify';
 import replace from 'rollup-plugin-replace';
-import json from 'rollup-plugin-json';
+import { plugin as analyze } from 'rollup-plugin-analyzer'
 
 function onwarn(message) {
   const suppressed = ['UNRESOLVED_IMPORT', 'THIS_IS_UNDEFINED'];
@@ -51,13 +51,15 @@ export default [
         ignore: [
           'react',
           'react-dom/server',
-          '@aws-amplify/auth'
+          '@aws-amplify/auth',
+          '@aws-amplify/core',
         ],
       }),
       replace({
         'process.env.NODE_ENV': JSON.stringify('production'),
       }),
       uglify(),
+      analyze(),
     ],
     onwarn,
   },

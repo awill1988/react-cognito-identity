@@ -1,5 +1,3 @@
-import {AuthOptions} from '@aws-amplify/auth/lib/types';
-
 let AUTH_PROVIDER_DEBUG = false;
 
 export const setDebugging = (setting: boolean) => AUTH_PROVIDER_DEBUG = setting;
@@ -30,7 +28,7 @@ export const DEFAULT_PROPS: ICognitoIdentityProvider = {
   location: undefined
 };
 
-export const DEFAULT_CONFIG = (): AuthOptions => ({
+export const DEFAULT_CONFIG = (): any => ({
 
   // REQUIRED only for Federated Authentication - Amazon Cognito Identity Pool ID
   identityPoolId: '',

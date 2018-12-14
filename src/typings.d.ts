@@ -1,6 +1,3 @@
-// import * as React from "react" />
-// import * as Amplify from "aws-amplify";
-
 interface IAWSAuthConfig {
   username?: string;
   identityPoolId?: string;

@@ -1,7 +1,6 @@
-import * as React from 'react';
 import * as PropTypes from 'prop-types';
 import {Consumer} from './IdentityProvider';
-import {ReactNode, Component} from "react";
+import React, {ReactNode, Component} from 'react';
 
 const AuthenticationContext = React.createContext<IAuthenticationState|{}>({state: {}});
 const {Provider: AuthenticationProvider} = AuthenticationContext;
