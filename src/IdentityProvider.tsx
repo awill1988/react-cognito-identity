@@ -2,7 +2,7 @@ import * as React from 'react';
 import {Component, createContext} from 'react';
 import * as PropTypes from 'prop-types';
 import {CognitoUser, CognitoUserSession} from 'amazon-cognito-identity-js';
-import {AuthClass} from 'aws-amplify';
+import {AuthClass} from '@aws-amplify/auth';
 import {withRouter} from 'react-router';
 import {
   setDebugging,

@@ -24,8 +24,7 @@
     "prestart": "rimraf lib"
   },
   "dependencies": {
-    "prop-types": "^15.6.2",
-    "aws-amplify": "^1.1.11"
+    "@aws-amplify/auth": "^1.2.13"
   },
   "babel": {
     "presets": [
@@ -39,16 +38,18 @@
     }
   ],
   "peerDependencies": {
-    "react": "^16.0.0",
-    "react-router": "^4.0.0"
+    "react": "^16.6.3",
+    "react-router": "^4.3.1",
+    "prop-types": "^15.6.2",
+    "@aws-amplify/auth": "^1.2.13"
   },
   "devDependencies": {
+    "@aws-amplify/auth": "^1.2.13",
+    "@babel/core": "^7.2.0",
+    "@babel/preset-env": "^7.2.0",
     "@types/prop-types": "15.5.6",
     "@types/react": "^16.7.13",
     "@types/react-router": "^4.4.1",
-    "amazon-cognito-identity-js": "^3.0.4",
-    "babel-core": "^6.26.3",
-    "babel-preset-env": "1.7.0",
     "bundlesize": "0.17.0",
     "gulp": "^4.0.0",
     "gulp-run": "^1.7.1",
