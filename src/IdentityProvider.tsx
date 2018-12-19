@@ -37,9 +37,8 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
 
   constructor(props: ICognitoIdentityProvider) {
     super(props);
-    const {DEBUG: DebugMode, history} = props;
+    const {DEBUG: DebugMode} = props;
     setDebugging(DebugMode);
-    history.listen(this.onRouteUpdate.bind(this));
   }
 
   componentDidMount() {
@@ -47,7 +46,9 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
       awsAuthConfig,
       routingConfig,
       location,
+      history,
     } = this.props;
+    history.listen(this.onRouteUpdate.bind(this));
     const {username, config} = Configure(awsAuthConfig);
     eventCallback(null, 'Provided default username', username);
     eventCallback(null, `${routingConfig ? 'has' : 'does not have'} routing configuration`);
