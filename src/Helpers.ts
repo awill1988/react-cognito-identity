@@ -4,6 +4,7 @@ export const setDebugging = (setting: boolean) => AUTH_PROVIDER_DEBUG = setting;
 
 export function DEBUG(...args: any) {
   if (AUTH_PROVIDER_DEBUG) {
+    // tslint:disable-next-line
     console.log('CognitoIdentity', ...args);
   }
 }
@@ -23,7 +24,7 @@ export const DEFAULT_PROPS: ICognitoIdentityProvider = {
     flowType: '',
   },
   children: null,
-  checkInterval: 1000 * 60,
+  checkInterval: 1000 * 1800,
   history: undefined,
   location: undefined
 };
