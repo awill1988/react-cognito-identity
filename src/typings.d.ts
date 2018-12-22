@@ -27,13 +27,14 @@ interface ICognitoIdentityProvider {
   history: any;
   location: any;
   children: React.ReactNode;
+  rememberSession: boolean;
 }
 
 interface ICognitoIdentityState {
   session: null|AWSCognito.CognitoUserSession,
-  error: null|string,
+  error?: null|any,
   challengeParameters: any,
-  answerAuthChallenge: ({answer}: any) => void,
+  answerAuthChallenge?: ({answer}: any) => void,
   logout: () => void,
   login: (params: any) => void,
   authenticated: boolean|null,

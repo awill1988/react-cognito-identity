@@ -29,6 +29,7 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
     history: PropTypes.object.isRequired,
     eventCallback: PropTypes.func,
     checkInterval: PropTypes.number,
+    rememberSession: PropTypes.bool,
   };
 
   static defaultProps = DEFAULT_PROPS;
@@ -37,7 +38,13 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
 
   constructor(props: ICognitoIdentityProvider) {
     super(props);
-    const {DEBUG: DebugMode} = props;
+    const {DEBUG: DebugMode, rememberSession, awsAuthConfig} = props;
+    if (rememberSession && awsAuthConfig.username) {
+      sessionStorage.setItem('cognito-username', awsAuthConfig.username);
+    }
+    if (!awsAuthConfig.username && rememberSession) {
+      awsAuthConfig.username = sessionStorage.getItem('cognito-username') || undefined;
+    }
     setDebugging(DebugMode);
   }
 
@@ -50,17 +57,23 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
     } = this.props;
     history.listen(this.onRouteUpdate.bind(this));
     const {username, config} = Configure(awsAuthConfig);
-    eventCallback(null, 'Provided default username', username);
-    eventCallback(null, `${routingConfig ? 'has' : 'does not have'} routing configuration`);
+    eventCallback.call(this,null, 'Provided default username', username);
+    eventCallback.call(this, null, `${routingConfig ? 'has' : 'does not have'} routing configuration`);
     clearSession.bind(this)(() => {
       AmplifyInstance = new AuthClass(config);
       AmplifyInstance.currentUserPoolUser()
-        .then(user => {
-          eventCallback(null, user);
-          this.checkAuth({redirect: this.shouldEnforceRoute(location.pathname)});
+        .then((user: CognitoUser) => {
+          if (user.getUsername() !== awsAuthConfig.username) {
+            AmplifyInstance.signOut({global: false}).then(
+              () => this.checkAuth({redirect: this.shouldEnforceRoute(location.pathname)})
+            ).catch((error) => eventCallback.call(this, error));
+          } else {
+            eventCallback.call(this,undefined, user);
+            this.checkAuth({redirect: this.shouldEnforceRoute(location.pathname)});
+          }
         })
         .catch(reason => {
-          eventCallback(null, reason);
+          eventCallback.call(this,undefined, reason);
           this.checkAuth({redirect: this.shouldEnforceRoute(location.pathname)});
         });
     });
@@ -108,7 +121,7 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
       return;
     }
     if (!history) {
-      eventCallback(new Error('Router not instantiated!'));
+      eventCallback.call(this, new Error('Router not instantiated!'));
       return;
     }
     history.goBack();
@@ -128,7 +141,7 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
           )
           .catch(error => clearSession.apply(this, [
             () => {
-              eventCallback(error);
+              eventCallback.call(this, error);
               const {logout, login} = routingConfig || {login: null, logout: null};
               if ((login || logout) && !awsAuthConfig.oauth) {
                 this.redirectTo(logout || login || '');
@@ -136,7 +149,7 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
             }
           ]));
       })
-      .catch(e => eventCallback(e));
+      .catch(e => eventCallback.call(this, e));
   }
 
   shouldEnforceRoute(location: string) {
@@ -161,23 +174,38 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
   }
 
   successHandler(cognitoUser: CognitoUser) {
-    this.getCredentials(cognitoUser, (error: Error|null|undefined, data: any) => {
-      eventCallback(error, data);
-      if (!error) {
-        this.setState({
-          authenticated: true,
-          session: data.session,
-          awsCredentials: data.credentials,
-        }, () => {
-          const {routingConfig} = this.props;
-          if (routingConfig && routingConfig.loginSuccess) {
-            this.redirectTo(routingConfig.loginSuccess);
-          } else {
-            this.goBack();
-          }
+    const {awsAuthConfig} = this.props;
+    if (awsAuthConfig.identityPoolId) {
+      this.getCredentials(cognitoUser, (error: Error|null|undefined, data: any) => {
+        eventCallback.call(this, error, data);
+        if (!error) {
+          this.setState({
+            authenticated: true,
+            session: data.session,
+            awsCredentials: data.credentials,
+          }, () => {
+            const {routingConfig} = this.props;
+            if (routingConfig && routingConfig.loginSuccess) {
+              this.redirectTo(routingConfig.loginSuccess);
+            } else {
+              this.goBack();
+            }
+          });
+        }
+      });
+    } else {
+      AmplifyInstance.currentSession()
+        .then((session: CognitoUserSession) => {
+          eventCallback.call(this, undefined, session);
+          this.setState({
+            session,
+            authenticated: (session && session.isValid()) as boolean
+          });
+        })
+        .catch((error) => {
+          eventCallback.call(this,error);
         });
-      }
-    });
+    }
   }
 
   getCredentials(user: CognitoUser, callback: any = () => {}) {
@@ -197,9 +225,32 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
   checkAuth({redirect}: {redirect: boolean} = {redirect: false}) {
     const {routingConfig, awsAuthConfig} = this.props;
 
+    let username = awsAuthConfig.username;
+
+    const redirectAndSignIn = (Username?: string|null) => {
+      eventCallback.call(this, undefined, `Attempting sign-in for ${Username}`);
+      if (routingConfig && redirect) {
+        this.redirectTo(routingConfig.login, () => {
+          eventCallback.call(this,null, 'Redirection completed');
+          if (!Username) {
+            return;
+          }
+          this.signIn({username: Username});
+        });
+      } else {
+        if (Username) {
+          if (!Username) {
+            return;
+          }
+          this.signIn({username: Username});
+        }
+      }
+    };
+
     const success = (session: CognitoUserSession) => {
+      eventCallback.call(this, undefined, session);
       if ((!session || !session.isValid()) && redirect && routingConfig) {
-        this.redirectTo(routingConfig.login);
+        redirectAndSignIn(username);
       }
       // Start timer to refresh
       if (!IdentityProvider.intervalCheck && session!.isValid()) {
@@ -212,33 +263,48 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
       }
     };
 
+    eventCallback.call(this, undefined, 'Attempting to obtain user from pool config');
     AmplifyInstance.currentUserPoolUser()
       .then((user: CognitoUser) => {
-        this.getCredentials(user, (error: Error|null|undefined, data: any) => {
-          eventCallback(error, data);
-          const {session, credentials} = data;
-          this.setState({
-            session,
-            awsCredentials: credentials,
-            authenticated: (session && session.isValid()) as boolean
-          }, success.bind(this, session));
-        });
+        username = user.getUsername() || username;
+        if (awsAuthConfig.identityPoolId) {
+          this.getCredentials(user, (error: Error|null|undefined, data: any) => {
+            if (!error) {
+              const {session, credentials} = data;
+              this.setState({
+                session,
+                awsCredentials: credentials,
+                authenticated: (session && session.isValid()) as boolean
+              }, success.bind(this, session));
+            } else {
+              this.setState({
+                session: null,
+                authenticated: false,
+              });
+            }
+          });
+        } else {
+          AmplifyInstance.currentSession()
+            .then((session: CognitoUserSession) => {
+              eventCallback.call(this, undefined, session);
+              if ((!session || !session.isValid()) && redirect && routingConfig) {
+                redirectAndSignIn(username);
+              }
+              this.setState({
+                session,
+                authenticated: (session && session.isValid()) as boolean
+              }, success.bind(this, session));
+            })
+            .catch((error) => {
+              eventCallback.call(this,error);
+            });
+        }
       })
       .catch((error) => {
-        eventCallback( error, 'Unable to obtain an active session.');
+        eventCallback.call(this, error, 'Unable to obtain an active session.');
         this.setState({
           authenticated: false
-        }, () => {
-          if (routingConfig && redirect) {
-            this.redirectTo(routingConfig.login, () => {
-              eventCallback(null, 'Redirection completed');
-              if (awsAuthConfig.username) {
-                eventCallback(null, 'Attempting to auto-login with username', awsAuthConfig.username);
-                this.signIn({username: awsAuthConfig.username});
-              }
-            });
-          }
-        });
+        }, () => redirectAndSignIn(username));
       });
   }
 
@@ -254,13 +320,13 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
               if (awsAuthConfig.flowType === 'CUSTOM_AUTH') {
                 AmplifyInstance.sendCustomChallengeAnswer(value, answer)
                   .then(this.successHandler.bind(this))
-                  .catch(error => eventCallback(error));
+                  .catch(error => eventCallback.call(this, error));
               }
 
             }
           }, () => {
             this.clearWatch();
-            eventCallback(null,
+            eventCallback.call(this, null,
               {
                 message: 'Received Challenge Parameters',
                 challengeParameters
@@ -269,7 +335,7 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
         }
       })
       .catch(error => {
-        eventCallback(null, error);
+        eventCallback.call(this,null, error);
       });
   }
 

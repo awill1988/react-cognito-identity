@@ -8,27 +8,27 @@ const {Provider: SessionProvider} = SessionContext;
 const SessionConsumer = SessionContext.Consumer as any;
 
 class Session extends Component<{children: ReactNode}> {
-    static propTypes = {
-        children: PropTypes.any
-    };
+  static propTypes = {
+    children: PropTypes.any
+  };
 
-    render() {
-        const {children} = this.props;
-        return (
-            <Consumer>
-                {
-                    ({state}: {state: ICognitoIdentityState}) => {
-                        const {awsCredentials, session, authenticated} = state;
-                        return (
-                            <SessionProvider value={{awsCredentials, session, authenticated}}>
-                                <SessionConsumer children={children}/>
-                            </SessionProvider>
-                        );
-                    }
-                }
-            </Consumer>
-        );
-    }
+  render() {
+    const {children} = this.props;
+    return (
+      <Consumer>
+        {
+          ({state}: {state: ICognitoIdentityState}) => {
+            const {awsCredentials, session, authenticated, error} = state;
+            return (
+              <SessionProvider value={{awsCredentials, session, authenticated, error}}>
+                <SessionConsumer children={children}/>
+              </SessionProvider>
+            );
+          }
+        }
+      </Consumer>
+    );
+  }
 }
 
 export default Session;

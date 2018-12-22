@@ -10,8 +10,12 @@ export function DEBUG(...args: any) {
 }
 
 export function eventCallback(error?: null|Error, ...args: any) {
-  if (error) {
+  if (error !== undefined && error !== null) {
     console.error('Error', error);
+    // @ts-ignore
+    this.setState({
+      error,
+    });
   }
   DEBUG(...args);
 }
@@ -26,7 +30,8 @@ export const DEFAULT_PROPS: ICognitoIdentityProvider = {
   children: null,
   checkInterval: 1000 * 1800,
   history: undefined,
-  location: undefined
+  location: undefined,
+  rememberSession: true
 };
 
 export const DEFAULT_CONFIG = (): any => ({
@@ -116,9 +121,9 @@ export const initialState = (): ICognitoIdentityState => ({
   challengeParameters: null,
   awsCredentials: null,
   session: null,
-  error: null,
+  error: undefined,
   // tslint:disable-next-line
-  answerAuthChallenge: () => {},
+  answerAuthChallenge: undefined,
   // tslint:disable-next-line
   logout: () => {},
   // tslint:disable-next-line
