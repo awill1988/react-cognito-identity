@@ -1,6 +1,6 @@
 {
   "name": "react-cognito-identity",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Secure Your React App using AWS Cognito",
   "browser": "lib/react-cognito-identity.browser.umd.js",

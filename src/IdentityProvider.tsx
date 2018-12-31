@@ -203,7 +203,7 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
           });
         })
         .catch((error) => {
-          eventCallback.call(this,error);
+          eventCallback.call(this, undefined, error.message);
         });
     }
   }
@@ -296,12 +296,12 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
               }, success.bind(this, session));
             })
             .catch((error) => {
-              eventCallback.call(this,error);
+              eventCallback.call(this, undefined, error.message);
             });
         }
       })
       .catch((error) => {
-        eventCallback.call(this, error, 'Unable to obtain an active session.');
+        eventCallback.call(this, undefined, error.message);
         this.setState({
           authenticated: false
         }, () => redirectAndSignIn(username));
