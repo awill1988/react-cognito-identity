@@ -175,6 +175,19 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
 
   successHandler(cognitoUser: CognitoUser) {
     const {awsAuthConfig} = this.props;
+    const challengeParameters = (cognitoUser as any).challengeParam;
+    if (challengeParameters) {
+      this.setState({
+        challengeParameters,
+        answerAuthChallenge: ({answer} = {answer: ''}) => {
+          if (awsAuthConfig.flowType === 'CUSTOM_AUTH') {
+            AmplifyInstance.sendCustomChallengeAnswer(cognitoUser, answer)
+              .then(this.successHandler.bind(this))
+              .catch(error => eventCallback.call(this, error));
+          }
+        }
+      });
+    }
     if (awsAuthConfig.identityPoolId) {
       this.getCredentials(cognitoUser, (error: Error|null|undefined, data: any) => {
         eventCallback.call(this, error, data);
@@ -322,7 +335,6 @@ class IdentityProvider extends Component<ICognitoIdentityProvider, ICognitoIdent
                   .then(this.successHandler.bind(this))
                   .catch(error => eventCallback.call(this, error));
               }
-
             }
           }, () => {
             this.clearWatch();
