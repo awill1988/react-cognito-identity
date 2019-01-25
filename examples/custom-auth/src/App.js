@@ -4,7 +4,7 @@ import {IdentityProvider, Session} from 'react-cognito-identity';
 import Home from './Home';
 import Login from './Login';
 
-const awsAuthConfig  = {
+const awsAuthConfig = {
   username: null,
   identityPoolId: null,
   region: null,

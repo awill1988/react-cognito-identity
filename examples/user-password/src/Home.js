@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 export default (props) => {
+  // eslint-disable-next-line
   const {session} = props;
   return (
     <div>

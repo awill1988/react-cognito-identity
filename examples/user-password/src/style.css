@@ -1,0 +1,16 @@
+form {
+    display: block;
+}
+
+input {
+    display: block;
+}
+
+b {
+    display: block;
+}
+
+.error {
+    display: block;
+    color: red;
+}
