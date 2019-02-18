@@ -51,6 +51,7 @@ export function resetState(callback) {
     forgotPassword,
     resetPassword,
     reset,
+    location: window.location,
   }, callback);
 }
 
