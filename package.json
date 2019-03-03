@@ -1,6 +1,6 @@
 {
   "name": "react-cognito-identity",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Secure Your React App using AWS Cognito",
   "main": "react-cognito-identity.umd.js",
