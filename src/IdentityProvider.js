@@ -48,6 +48,7 @@ class IdentityProvider extends Component {
     this.maybeRestoreSession = this.maybeRestoreSession.bind(this);
     this.forgotPassword = this.forgotPassword.bind(this);
     this.resetPassword = this.resetPassword.bind(this);
+    this.signUp = this.signUp.bind(this);
     this.reset = this.reset.bind(this);
   }
 
@@ -375,6 +376,20 @@ class IdentityProvider extends Component {
         .then(this.onAuthenticationResponse)
         .catch(error => emitEvent.call(this, error));
     });
+  };
+
+  signUp = ({attributes, password, username, validationData}) => {
+    const {routingConfig} = this.props;
+    const location = window.location;
+    Auth.signUp({attributes, password, username, validationData})
+      .then(({user, userConfirmed, userSub}) => { // eslint-disable-line
+        if (user) {
+          this.maybeRestoreSession({
+            redirect: shouldEnforceRoute(location.pathname, routingConfig),
+          });
+        }
+      })
+      .catch((error) => this.setState({error}));
   };
 
   signOut = (invalidateAllSessions = false) => {

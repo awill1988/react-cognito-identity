@@ -4,7 +4,6 @@ import resolve from 'rollup-plugin-node-resolve';
 import external from 'rollup-plugin-peer-deps-external'
 import commonjs from 'rollup-plugin-commonjs';
 import { uglify } from 'rollup-plugin-uglify';
-import replace from 'rollup-plugin-replace';
 import { plugin as analyze } from 'rollup-plugin-analyzer'
 import pkg from './package.json';
 
