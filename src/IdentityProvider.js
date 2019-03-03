@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unused-state */
 import React, {Component, createContext} from 'react';
 import PropTypes from 'prop-types';
 import {AuthClass} from '@aws-amplify/auth';
@@ -10,7 +11,6 @@ import {defaultState, defaultProps} from './helpers/defaults';
 import {emitEvent, setDebugging} from './helpers/debug';
 
 let Auth;
-let AuthRefreshTimer;
 
 const Context = createContext({state: defaultState()});
 
@@ -23,7 +23,6 @@ class IdentityProvider extends Component {
     routingConfig: PropTypes.any,
     history: PropTypes.object.isRequired,
     children: PropTypes.any,
-    refreshInterval: PropTypes.number
   };
 
   static defaultProps = defaultProps;
@@ -50,8 +49,6 @@ class IdentityProvider extends Component {
     this.forgotPassword = this.forgotPassword.bind(this);
     this.resetPassword = this.resetPassword.bind(this);
     this.reset = this.reset.bind(this);
-    this.stopTimer = this.stopTimer.bind(this);
-    this.maybeStartTimer = this.maybeStartTimer.bind(this);
   }
 
   componentDidMount() {
@@ -163,7 +160,6 @@ class IdentityProvider extends Component {
     }
 
     if (session) {
-      this.maybeStartTimer();
       const {routingConfig} = this.props;
       if (routingConfig && routingConfig.loginSuccess) {
         this.navigateToLogin(routingConfig.loginSuccess);
@@ -175,12 +171,14 @@ class IdentityProvider extends Component {
 
   onRouteUpdate = (ev) => {
     const {routingConfig} = this.props;
+    const location = window.location;
+    if (location.pathname === ev.pathname) {
+      return;
+    }
     const {session} = this.state;
     emitEvent.call(this, null, ev);
     if (shouldEnforceRoute(ev.pathname, routingConfig) && !session) {
       emitEvent.call(this, null, {message: 'Should check session'});
-    }
-    if (!session) {
       this.maybeRestoreSession({redirect: shouldEnforceRoute(ev.pathname, routingConfig)});
     }
   };
@@ -262,21 +260,6 @@ class IdentityProvider extends Component {
     }
   };
 
-  maybeStartTimer = () => {
-    const {refreshInterval} = this.props;
-    if (!AuthRefreshTimer && refreshInterval) {
-      const {routingConfig} = this.props;
-      const location = window.location;
-      AuthRefreshTimer = setInterval(() => {
-        this.maybeRestoreSession({redirect: shouldEnforceRoute(location.pathname, routingConfig)});
-      }, 60 * 1000 * refreshInterval);
-    }
-  };
-
-  stopTimer = () => {
-    clearInterval(AuthRefreshTimer);
-  };
-
   maybeRestoreSession = ({redirect, force}) => {
     return new Promise(resolve => {
       const {awsAuthConfig} = this.props;
@@ -297,14 +280,12 @@ class IdentityProvider extends Component {
                     authenticated: true,
                   }, () => {
                     resolve(session);
-                    this.maybeStartTimer();
                   });
                 } else {
                   this.setState({
                     session: null,
                     authenticated: false,
                   }, () => {
-                    this.stopTimer();
                     resolve(undefined);
                     this.maybeForceLoginPage(redirect || false, username);
                   });
@@ -315,7 +296,6 @@ class IdentityProvider extends Component {
                   session: null,
                   authenticated: false,
                 }, () => {
-                  this.stopTimer();
                   resolve(undefined);
                   this.maybeForceLoginPage(redirect || false, username);
                 });
@@ -329,7 +309,6 @@ class IdentityProvider extends Component {
                     session: null,
                     authenticated: false,
                   }, () => {
-                    this.stopTimer();
                     resolve(undefined);
                     this.maybeForceLoginPage(redirect || false, username);
                   });
@@ -341,7 +320,6 @@ class IdentityProvider extends Component {
                         authenticated: false,
                       }, () => {
                         resolve(undefined);
-                        this.stopTimer();
                         this.maybeForceLoginPage(redirect, username);
                       });
                     } else {
@@ -351,7 +329,6 @@ class IdentityProvider extends Component {
                         authenticated: true,
                         tapSession: () => this.maybeRestoreSession({redirect, force: true}),
                       }, () => {
-                        this.maybeStartTimer();
                         resolve(result);
                       });
                     }
@@ -363,7 +340,6 @@ class IdentityProvider extends Component {
                       authenticated: true,
                       tapSession: () => this.maybeRestoreSession({redirect, force: true}),
                     }, () => {
-                      this.maybeStartTimer();
                       resolve(session);
                     });
                   }
@@ -374,7 +350,6 @@ class IdentityProvider extends Component {
                   authenticated: false,
                 }, () => {
                   resolve(undefined);
-                  this.stopTimer();
                   this.maybeForceLoginPage(redirect, username);
                 });
               });
@@ -386,7 +361,6 @@ class IdentityProvider extends Component {
             authenticated: false,
           }, () => {
             resolve(undefined);
-            this.stopTimer();
             this.maybeForceLoginPage(redirect, username);
           });
         });
@@ -406,7 +380,6 @@ class IdentityProvider extends Component {
   signOut = (invalidateAllSessions = false) => {
     const {routingConfig, awsAuthConfig} = this.props;
     const location = window.location;
-    this.stopTimer();
     if (this.unlisten) {
       this.unlisten();
     }
@@ -443,3 +416,4 @@ class IdentityProvider extends Component {
 }
 
 export {IdentityProvider as default, Consumer};
+/* eslint-enable react/no-unused-state */
