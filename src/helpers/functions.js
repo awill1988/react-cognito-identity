@@ -49,6 +49,7 @@ export function resetState(callback) {
     // @ts-ignore
     logout: (invalidateAllSessions = false) => this.signOut(invalidateAllSessions),
     signUp: (params) => this.signUp(params),
+    confirmSignUp: (params) => this.confirmSignUp(params),
     forgotPassword,
     resetPassword,
     reset,

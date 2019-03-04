@@ -49,6 +49,7 @@ class IdentityProvider extends Component {
     this.forgotPassword = this.forgotPassword.bind(this);
     this.resetPassword = this.resetPassword.bind(this);
     this.signUp = this.signUp.bind(this);
+    this.confirmSignUp = this.confirmSignUp.bind(this);
     this.reset = this.reset.bind(this);
   }
 
@@ -376,6 +377,14 @@ class IdentityProvider extends Component {
         .then(this.onAuthenticationResponse)
         .catch(error => emitEvent.call(this, error));
     });
+  };
+
+  confirmSignUp = ({username, code}) => {
+    Auth.confirmSignUp(username, code)
+      .then(() => {
+        this.setState({error: null});
+      })
+      .catch((error) => this.setState({error}));
   };
 
   signUp = ({attributes, password, username, validationData}) => {
