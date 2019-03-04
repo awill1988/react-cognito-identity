@@ -12,6 +12,8 @@ export const defaultState = () => ({
   reset: () => {},
   // tslint:disable-next-line
   login: () => {},
+  lastPage: window.location.pathname,
+  confirmSignUp: () => {},
   // tslint:disable-next-line
   forgotPassword: () => {},
   // tslint:disable-next-line

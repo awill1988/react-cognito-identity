@@ -17,8 +17,8 @@ class SignUp extends Component {
       <Consumer>
         {
           ({state}) => {
-            const {error, importantDetail, signUp} = state;
-            const newState = {error, importantDetail, signUp};
+            const {error, importantDetail, signUp, newUser} = state;
+            const newState = {error, importantDetail, signUp, newUser};
             return (
               <SignUpProvider value={newState}>
                 <SignUpConsumer>

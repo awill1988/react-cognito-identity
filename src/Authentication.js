@@ -17,8 +17,8 @@ class Authentication extends Component {
       <Consumer>
         {
           ({state}) => {
-            const {login, logout, challengeParameters, answerAuthChallenge, authenticated, error, forgotPassword, resetPassword, importantDetail, reset} = state;
-            const newState = {login, logout, challengeParameters, answerAuthChallenge, authenticated, error, forgotPassword, resetPassword, importantDetail, reset};
+            const {login, logout, challengeParameters, answerAuthChallenge, confirmSignUp, authenticated, error, forgotPassword, resetPassword, importantDetail, reset} = state;
+            const newState = {login, logout, challengeParameters, confirmSignUp, answerAuthChallenge, authenticated, error, forgotPassword, resetPassword, importantDetail, reset};
             return (
               <AuthenticationProvider value={newState}>
                 <AuthenticationConsumer>

@@ -94,6 +94,12 @@ class IdentityProvider extends Component {
     });
   }
 
+  componentWillUnmount() {
+    if (this.unlisten) {
+      this.unlisten();
+    }
+  }
+
   challengeResponseCallback = (user) => ({answer, newPassword = null}) => {
     // Responding to custom auth challenges
     if (user.authenticationFlowType === 'CUSTOM_AUTH') {
@@ -173,21 +179,26 @@ class IdentityProvider extends Component {
 
   onRouteUpdate = (ev) => {
     const {routingConfig} = this.props;
-    const location = window.location;
-    if (location.pathname === ev.pathname) {
+    const {lastPage} = this.state;
+    if (lastPage === ev.pathname) {
       return;
     }
-    const {session} = this.state;
-    emitEvent.call(this, null, ev);
-    if (shouldEnforceRoute(ev.pathname, routingConfig) && !session) {
-      emitEvent.call(this, null, {message: 'Should check session'});
-      this.maybeRestoreSession({redirect: shouldEnforceRoute(ev.pathname, routingConfig)});
-    }
+    this.setState({lastPage: ev.pathname}, () => {
+      const {session} = this.state;
+      emitEvent.call(this, null, ev);
+      if (shouldEnforceRoute(ev.pathname, routingConfig) && !session) {
+        emitEvent.call(this, null, {message: 'Should check session'});
+        this.maybeRestoreSession({redirect: shouldEnforceRoute(ev.pathname, routingConfig)});
+      }
+    });
   };
 
   navigateToLogin = (path, callback) => {
     const {history} = this.props;
-    const location = window.location;
+    let {lastPage} = this.state;
+    if (!lastPage) {
+      lastPage = window.location.pathname;
+    }
     if (!history) {
       emitEvent.call(this, new Error('Router not instantiated!'), null);
       if (callback) {
@@ -195,7 +206,6 @@ class IdentityProvider extends Component {
       }
       return;
     }
-    const lastPage = location.pathname;
     emitEvent.call(this, null, {lastPage, path});
     if (path === lastPage) {
       if (callback) {
@@ -392,9 +402,14 @@ class IdentityProvider extends Component {
     const location = window.location;
     Auth.signUp({attributes, password, username, validationData})
       .then(({user, userConfirmed, userSub}) => { // eslint-disable-line
-        if (user) {
+        if (user && userConfirmed) {
           this.maybeRestoreSession({
             redirect: shouldEnforceRoute(location.pathname, routingConfig),
+          });
+        } else {
+          this.setState({
+            error: null,
+            newUser: {user, userConfirmed, userSub}
           });
         }
       })
